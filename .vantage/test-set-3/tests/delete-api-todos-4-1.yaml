@@ -1,0 +1,29 @@
+id: delete-api-todos-4-1
+metadata:
+  created_at: 2026-08-04T16:15:00.373Z
+  app_port: 3000
+  vantage_version: 1.0.0
+request:
+  method: DELETE
+  path: /api/todos/4
+  headers:
+    user-agent: PostmanRuntime/7.53.0
+    accept: "*/*"
+    cache-control: no-cache
+    postman-token: a706ef11-2d86-4c23-b1fd-6510534606ca
+    host: localhost:3000
+    accept-encoding: gzip, deflate, br
+    connection: keep-alive
+  query: {}
+response:
+  status: 204
+  headers:
+    x-powered-by: Express
+curl: |-
+  curl --request DELETE \
+    --url http://localhost:3000/api/todos/4 \
+    --header 'user-agent: PostmanRuntime/7.53.0' \
+    --header 'accept: */*' \
+    --header 'cache-control: no-cache' \
+    --header 'postman-token: a706ef11-2d86-4c23-b1fd-6510534606ca' \
+    --header 'accept-encoding: gzip, deflate, br'

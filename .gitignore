@@ -3,4 +3,3 @@ dist/
 *.log
 .DS_Store
 AGENTS.md
-.vantage/

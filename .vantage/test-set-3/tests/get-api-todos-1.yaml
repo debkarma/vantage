@@ -1,0 +1,30 @@
+id: get-api-todos-1
+metadata:
+  created_at: 2026-08-04T16:08:32.787Z
+  app_port: 3000
+  vantage_version: 1.0.0
+request:
+  method: GET
+  path: /api/todos
+  headers:
+    host: localhost:3000
+    user-agent: curl/8.18.0
+    accept: "*/*"
+  query: {}
+response:
+  status: 200
+  headers:
+    x-powered-by: Express
+    content-type: application/json; charset=utf-8
+    content-length: "78"
+    etag: W/"4e-WP7hsuEqvzoxTNtdyrdJYoJFauU"
+  body:
+    - id: 1
+      title: Learn Keploy and Vantage
+    - id: 2
+      title: Build Vantage
+curl: |-
+  curl --request GET \
+    --url http://localhost:3000/api/todos \
+    --header 'user-agent: curl/8.18.0' \
+    --header 'accept: */*'

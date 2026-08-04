@@ -1,0 +1,41 @@
+id: put-api-todos-1
+metadata:
+  created_at: 2026-08-04T16:10:30.551Z
+  app_port: 3000
+  vantage_version: 1.0.0
+request:
+  method: PUT
+  path: /api/todos
+  headers:
+    content-type: application/json
+    user-agent: PostmanRuntime/7.53.0
+    accept: "*/*"
+    cache-control: no-cache
+    postman-token: 56658584-98c2-44c7-8ef0-5f2a55447ed0
+    host: localhost:3000
+    accept-encoding: gzip, deflate, br
+    connection: keep-alive
+    content-length: "48"
+  body:
+    id: 1
+    title: Learn Cooking
+  query: {}
+response:
+  status: 404
+  headers:
+    x-powered-by: Express
+    content-security-policy: default-src 'none'
+    x-content-type-options: nosniff
+    content-type: text/html; charset=utf-8
+    content-length: 148
+  body: null
+curl: |-
+  curl --request PUT \
+    --url http://localhost:3000/api/todos \
+    --header 'content-type: application/json' \
+    --header 'user-agent: PostmanRuntime/7.53.0' \
+    --header 'accept: */*' \
+    --header 'cache-control: no-cache' \
+    --header 'postman-token: 56658584-98c2-44c7-8ef0-5f2a55447ed0' \
+    --header 'accept-encoding: gzip, deflate, br' \
+    --data '{"id":1,"title":"Learn Cooking"}'

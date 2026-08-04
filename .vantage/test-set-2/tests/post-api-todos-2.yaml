@@ -1,0 +1,41 @@
+id: post-api-todos-2
+metadata:
+  created_at: 2026-08-04T15:42:52.750Z
+  app_port: 3000
+  vantage_version: 1.0.0
+request:
+  method: POST
+  path: /api/todos
+  headers:
+    content-type: application/json
+    user-agent: PostmanRuntime/7.53.0
+    accept: "*/*"
+    cache-control: no-cache
+    postman-token: f5438949-88f8-4d03-a7a8-0172ea4267a9
+    host: localhost:3000
+    accept-encoding: gzip, deflate, br
+    connection: keep-alive
+    content-length: "33"
+  body:
+    title: Play Cricket
+  query: {}
+response:
+  status: 201
+  headers:
+    x-powered-by: Express
+    content-type: application/json; charset=utf-8
+    content-length: "31"
+    etag: W/"1f-prUSZcBGQRMFwELsGSqvoUBjgao"
+  body:
+    id: 4
+    title: Play Cricket
+curl: |-
+  curl --request POST \
+    --url http://localhost:3000/api/todos \
+    --header 'content-type: application/json' \
+    --header 'user-agent: PostmanRuntime/7.53.0' \
+    --header 'accept: */*' \
+    --header 'cache-control: no-cache' \
+    --header 'postman-token: f5438949-88f8-4d03-a7a8-0172ea4267a9' \
+    --header 'accept-encoding: gzip, deflate, br' \
+    --data '{"title":"Play Cricket"}'

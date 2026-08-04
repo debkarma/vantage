@@ -1,0 +1,58 @@
+status: FAILED
+created_at: 2026-08-04T16:18:27.793Z
+summary:
+  total: 8
+  passed: 7
+  failed: 1
+tests:
+  - id: get-api-todos-1
+    status: PASSED
+    actual_status: 200
+    expected_status: 200
+  - id: post-api-todos-1
+    status: PASSED
+    actual_status: 201
+    expected_status: 201
+  - id: post-api-todos-2
+    status: PASSED
+    actual_status: 201
+    expected_status: 201
+  - id: put-api-todos-1
+    status: FAILED
+    actual_status: 404
+    expected_status: 404
+    diffs:
+      - count: 1
+        added: false
+        removed: true
+        value: "{}"
+      - count: 10
+        added: true
+        removed: false
+        value: |
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+          <meta charset="utf-8">
+          <title>Error</title>
+          </head>
+          <body>
+          <pre>Cannot PUT /api/todos</pre>
+          </body>
+          </html>
+  - id: put-api-todos-1-1
+    status: PASSED
+    actual_status: 200
+    expected_status: 200
+  - id: get-api-todos-2
+    status: PASSED
+    actual_status: 200
+    expected_status: 200
+  - id: delete-api-todos-4-1
+    status: PASSED
+    actual_status: 204
+    expected_status: 204
+  - id: get-api-todos-3
+    status: PASSED
+    actual_status: 200
+    expected_status: 200

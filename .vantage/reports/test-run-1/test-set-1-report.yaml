@@ -1,0 +1,67 @@
+status: FAILED
+created_at: 2026-08-04T15:07:52.696Z
+summary:
+  total: 2
+  passed: 0
+  failed: 2
+tests:
+  - id: get-api-todos-1
+    status: FAILED
+    actual_status: 200
+    expected_status: 200
+    diffs:
+      - count: 9
+        added: false
+        removed: false
+        value: |
+          [
+            {
+              "id": 1,
+              "title": "Learn Keploy and Vantage"
+            },
+            {
+              "id": 2,
+              "title": "Build Vantage"
+            },
+      - count: 8
+        added: false
+        removed: true
+        value: |2
+            {
+              "id": 3,
+              "title": "Watch Movies"
+            },
+            {
+              "id": 4,
+              "title": "Write tests"
+            }
+      - count: 1
+        added: false
+        removed: false
+        value: "]"
+  - id: post-api-todos-1
+    status: FAILED
+    actual_status: 201
+    expected_status: 201
+    diffs:
+      - count: 1
+        added: false
+        removed: false
+        value: |
+          {
+      - count: 1
+        added: false
+        removed: true
+        value: |2
+            "id": 5,
+      - count: 1
+        added: true
+        removed: false
+        value: |2
+            "id": 3,
+      - count: 2
+        added: false
+        removed: false
+        value: |2-
+            "title": "Write tests"
+          }

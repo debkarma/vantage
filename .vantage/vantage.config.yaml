@@ -1,0 +1,9 @@
+version: 1
+app_port: 3000
+record_port: 6789
+noise:
+  headers:
+    - Date
+    - ETag
+    - X-Request-Id
+  body_fields: []
