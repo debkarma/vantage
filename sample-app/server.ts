@@ -19,7 +19,11 @@ app.get('/api/todos', (req, res) => {
 });
 
 app.post('/api/todos', (req, res) => {
-  const newTodo = { id: todos.length + 1, title: req.body.title };
+  const { title } = req.body;
+  if(!title) {
+    return res.status(400).json({ error: 'Title is required' });
+  }
+  const newTodo = { id: todos.length + 1, title };
   todos.push(newTodo);
   res.status(201).json(newTodo);
 });

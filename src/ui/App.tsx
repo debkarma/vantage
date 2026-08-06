@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Text } from 'ink';
-import { spawn, ChildProcess } from 'child_process';
+import { spawn, execSync, ChildProcess } from 'child_process';
 import { startRecordServer } from '../engine/recordServer.js';
 import {
   loadTestCases,
@@ -12,6 +12,7 @@ import {
 } from '../engine/storage.js';
 import { loadConfig } from '../engine/config.js';
 import { runTest, TestResult } from '../engine/replayEngine.js';
+import { NoiseConfig } from '../engine/noiseFilter.js';
 import path from 'path';
 
 interface AppProps {
@@ -43,7 +44,7 @@ function killApp(child?: ChildProcess) {
   if (!child || !child.pid) return;
   try {
     if (process.platform === 'win32') {
-      spawn('taskkill', ['/pid', child.pid.toString(), '/f', '/t']);
+      execSync(`taskkill /pid ${child.pid} /f /t`, { stdio: 'ignore' });
     } else {
       child.kill('SIGTERM');
     }
@@ -131,6 +132,8 @@ export const App = ({
       const child = appCommand ? spawnApp(appCommand, 'test') : undefined;
       setIsRunningTests(true);
 
+      const noiseConfig: NoiseConfig = config.noise || { headers: [], body_fields: [] };
+
       const runAll = async () => {
         if (waitSeconds > 0) {
           await new Promise(resolve => setTimeout(resolve, waitSeconds * 1000));
@@ -139,7 +142,7 @@ export const App = ({
         const results: TestResult[] = [];
         for (const tc of cases) {
           setLogs(prev => [...prev, `  Running: ${tc.id}`]);
-          const result = await runTest(tc, targetUrl);
+          const result = await runTest(tc, targetUrl, noiseConfig);
           results.push(result);
         }
         setTestResults(results);
@@ -184,6 +187,7 @@ export const App = ({
 
   const passed = testResults.filter(r => r.passed).length;
   const failed = testResults.filter(r => !r.passed).length;
+  const totalTimeMs = testResults.reduce((sum, r) => sum + r.timeTakenMs, 0);
 
   return (
     <Box flexDirection="column" padding={1}>
@@ -219,22 +223,33 @@ export const App = ({
           {!isRunningTests && testResults.length > 0 && (
             <Box flexDirection="column" marginTop={1}>
               <Box borderStyle="single" borderColor={failed > 0 ? 'red' : 'green'} padding={1} flexDirection="column">
-                <Text bold>Results: {passed} passed, {failed} failed, {testResults.length} total</Text>
+                <Text bold>Results: {passed} passed, {failed} failed, {testResults.length} total ({totalTimeMs}ms)</Text>
               </Box>
 
               <Box flexDirection="column" marginTop={1}>
                 {testResults.map((res, i) => (
                   <Box key={i} flexDirection="column" marginBottom={1}>
                     <Text color={res.passed ? 'green' : 'red'}>
-                      {res.passed ? '  ✔' : '  ✖'} {res.testId}
-                      {!res.passed && ` (expected: ${res.expectedStatus}, actual: ${res.actualStatus})`}
+                      {res.passed ? '  ✔' : '  ✖'} {res.testId} ({res.timeTakenMs}ms)
+                      {!res.passed && ` [${res.failureCategory}]${res.failureCategory === 'STATUS_CODE_CHANGED' ? ` (expected: ${res.expectedStatus}, actual: ${res.actualStatus})` : ''}`}
                     </Text>
 
-                    {!res.passed && res.diffs && (
+                    {!res.passed && res.bodyDiffs && res.bodyDiffs.length > 0 && (
                       <Box flexDirection="column" marginLeft={4}>
-                        {res.diffs.map((d, j) => {
+                        {res.bodyDiffs.map((d, j) => {
                           if (d.added) return <Text key={j} color="green">+{d.value}</Text>;
                           if (d.removed) return <Text key={j} color="red">-{d.value}</Text>;
+                          return null;
+                        })}
+                      </Box>
+                    )}
+
+                    {!res.passed && res.headerDiffs && res.headerDiffs.some(d => d.added || d.removed) && (
+                      <Box flexDirection="column" marginLeft={4}>
+                        <Text color="yellow" dimColor>Header diffs:</Text>
+                        {res.headerDiffs.map((d, j) => {
+                          if (d.added) return <Text key={`h${j}`} color="green">+{d.value}</Text>;
+                          if (d.removed) return <Text key={`h${j}`} color="red">-{d.value}</Text>;
                           return null;
                         })}
                       </Box>

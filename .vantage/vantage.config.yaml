@@ -6,4 +6,5 @@ noise:
     - Date
     - ETag
     - X-Request-Id
+    - Content-Length
   body_fields: []

@@ -242,6 +242,7 @@ export function saveTestReport(testSetIndex: number, results: any[]): string {
 
   const passedCount = results.filter(r => r.passed).length;
   const failedCount = results.filter(r => !r.passed).length;
+  const totalTimeMs = results.reduce((sum: number, r: any) => sum + (r.timeTakenMs || 0), 0);
   const status = failedCount === 0 ? 'PASSED' : 'FAILED';
 
   const reportData = {
@@ -251,13 +252,17 @@ export function saveTestReport(testSetIndex: number, results: any[]): string {
       total: results.length,
       passed: passedCount,
       failed: failedCount,
+      total_time_ms: totalTimeMs,
     },
     tests: results.map(r => ({
       id: r.testId,
       status: r.passed ? 'PASSED' : 'FAILED',
+      time_taken_ms: r.timeTakenMs || 0,
       actual_status: r.actualStatus,
       expected_status: r.expectedStatus,
-      diffs: r.passed ? undefined : r.diffs,
+      failure_category: r.passed ? undefined : r.failureCategory,
+      body_diff: r.passed ? undefined : (r.bodyDiffs?.length > 0 ? r.bodyDiffs : undefined),
+      header_diff: r.passed ? undefined : (r.headerDiffs?.length > 0 ? r.headerDiffs : undefined),
     })),
   };
 
@@ -265,3 +270,4 @@ export function saveTestReport(testSetIndex: number, results: any[]): string {
   fs.writeFileSync(filePath, yaml.stringify(reportData), 'utf8');
   return filePath;
 }
+

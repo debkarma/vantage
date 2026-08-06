@@ -1,0 +1,40 @@
+id: post-api-todos-1
+metadata:
+  created_at: 2026-08-06T17:15:36.690Z
+  app_port: 3000
+  vantage_version: 1.0.0
+request:
+  method: POST
+  path: /api/todos
+  headers:
+    content-type: application/json
+    user-agent: PostmanRuntime/7.53.0
+    accept: "*/*"
+    cache-control: no-cache
+    postman-token: 8f59bc95-ab5a-4ca6-b24f-6f3ffbbbc91f
+    host: localhost:3000
+    accept-encoding: gzip, deflate, br
+    connection: keep-alive
+    content-length: "32"
+  body:
+    ttle: Watch Movies
+  query: {}
+response:
+  status: 201
+  headers:
+    x-powered-by: Express
+    content-type: application/json; charset=utf-8
+    content-length: "8"
+    etag: W/"8-0rVkPUSjKXvAXSnOiVTQsEptELY"
+  body:
+    id: 3
+curl: |-
+  curl --request POST \
+    --url http://localhost:3000/api/todos \
+    --header 'content-type: application/json' \
+    --header 'user-agent: PostmanRuntime/7.53.0' \
+    --header 'accept: */*' \
+    --header 'cache-control: no-cache' \
+    --header 'postman-token: 8f59bc95-ab5a-4ca6-b24f-6f3ffbbbc91f' \
+    --header 'accept-encoding: gzip, deflate, br' \
+    --data '{"ttle":"Watch Movies"}'
