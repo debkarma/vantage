@@ -13,7 +13,10 @@ import {
 import { loadConfig } from '../engine/config.js';
 import { runTest, TestResult } from '../engine/replayEngine.js';
 import { NoiseConfig } from '../engine/noiseFilter.js';
+import { jestGenerator } from '../generators/jest.js';
+import { pytestGenerator } from '../generators/pytest.js';
 import path from 'path';
+import fs from 'fs';
 
 interface AppProps {
   mode: 'record' | 'test' | 'list' | 'export';
@@ -59,6 +62,9 @@ export const App = ({
   recordPort,
   delay,
   testSet,
+  exportFormat,
+  appEntry,
+  outDir,
   appCommand,
 }: AppProps) => {
   const [logs, setLogs] = useState<string[]>([]);
@@ -168,7 +174,50 @@ export const App = ({
     }
 
     if (mode === 'export') {
-      setLogs(prev => [...prev, 'Export command coming in Phase 3.']);
+      if (!exportFormat || !['jest', 'pytest'].includes(exportFormat)) {
+        setLogs(prev => [...prev, 'Error: --format is required (jest or pytest)']);
+        return;
+      }
+
+      const sets = listTestSets();
+      if (sets.length === 0) {
+        setLogs(prev => [...prev, 'No test sets found. Run "vantage record" first.']);
+        return;
+      }
+
+      let targetSetExport: typeof sets[0];
+      if (testSet) {
+        const match = testSet.match(/^test-set-(\d+)$/);
+        const found = match ? sets.find(s => s.index === parseInt(match[1], 10)) : undefined;
+        if (!found) {
+          setLogs(prev => [...prev, `Test set "${testSet}" not found.`]);
+          return;
+        }
+        targetSetExport = found;
+      } else {
+        targetSetExport = sets[sets.length - 1];
+      }
+
+      const cases = loadTestCases(targetSetExport.dir);
+      if (cases.length === 0) {
+        setLogs(prev => [...prev, `No test cases in test-set-${targetSetExport.index}.`]);
+        return;
+      }
+
+      const defaultOutDir = exportFormat === 'jest' ? '__tests__/vantage' : 'tests/vantage';
+      const outputDir = outDir || defaultOutDir;
+
+      const generator = exportFormat === 'jest' ? jestGenerator : pytestGenerator;
+      const files = generator.generate(cases, { appEntry, targetUrl, testSetName: `test-set-${targetSetExport.index}` });
+
+      fs.mkdirSync(outputDir, { recursive: true });
+      for (const file of files) {
+        const filePath = path.join(outputDir, file.filename);
+        fs.writeFileSync(filePath, file.content, 'utf8');
+        setLogs(prev => [...prev, `  Generated: ${filePath}`]);
+      }
+
+      setLogs(prev => [...prev, `\nExported ${files.length} ${exportFormat} test files to ${outputDir}/`]);
     }
   }, [mode, targetUrl, recordPort, delay, testSet]);
   // Handle 'q' to quit — only when stdin is a TTY
