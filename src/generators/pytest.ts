@@ -24,7 +24,43 @@ function toPythonDict(obj: any, indent: number = 4): string {
     .replace(/: null/g, ': None');
 }
 
-function generateTestFunc(tc: TestCase, baseUrl: string): string {
+function toPythonDictWithNoise(obj: any, noiseFields: Set<string>, indent: number = 4): string {
+  if (obj === null || obj === undefined) return 'None';
+  
+  const placeholderObj = JSON.parse(JSON.stringify(obj));
+  const placeholders = new Map<string, string>();
+  let pIndex = 0;
+
+  function walk(o: any) {
+    if (!o || typeof o !== 'object') return;
+    for (const key of Object.keys(o)) {
+      if (noiseFields.has(key)) {
+        const pKey = `__VANTAGE_NOISE_${pIndex++}__`;
+        let expectedType = 'ANY_STR';
+        if (typeof o[key] === 'number') expectedType = 'ANY_NUM';
+        else if (typeof o[key] === 'boolean') expectedType = 'ANY_BOOL';
+        else if (Array.isArray(o[key])) expectedType = 'ANY_LIST';
+        
+        placeholders.set(pKey, expectedType);
+        o[key] = pKey;
+      } else if (typeof o[key] === 'object') {
+        walk(o[key]);
+      }
+    }
+  }
+
+  walk(placeholderObj);
+
+  let jsonStr = toPythonDict(placeholderObj, indent);
+  
+  for (const [pKey, code] of placeholders.entries()) {
+    jsonStr = jsonStr.replace(`"${pKey}"`, code);
+  }
+
+  return jsonStr;
+}
+
+function generateTestFunc(tc: TestCase, baseUrl: string, noiseFields: Set<string>): string {
   const method = tc.request.method.toLowerCase();
   const path = tc.request.path;
   const headers = filterHeaders(tc.request.headers || {});
@@ -59,7 +95,7 @@ function generateTestFunc(tc: TestCase, baseUrl: string): string {
   code += `    assert response.status_code == ${tc.response.status}\n`;
 
   if (tc.response.body !== null && tc.response.body !== undefined && tc.response.status !== 204) {
-    code += `    assert response.json() == ${toPythonDict(tc.response.body)}\n`;
+    code += `    assert response.json() == ${toPythonDictWithNoise(tc.response.body, noiseFields)}\n`;
   }
 
   return code;
@@ -68,13 +104,28 @@ function generateTestFunc(tc: TestCase, baseUrl: string): string {
 export const pytestGenerator: TestGenerator = {
   generate(testCases: TestCase[], options: GeneratorOptions): GeneratedFile[] {
     const baseUrl = options.targetUrl || 'http://localhost:3000';
+    const noiseFields = new Set(options.noiseConfig?.body_fields || []);
 
     // Single file with all tests in sequence — preserves state across requests
     let code = `"""Vantage API Tests — run against a live server (sequential)"""\nimport httpx\n\n`;
+    
+    // Inject the AnyType helpers for noise filtering
+    if (noiseFields.size > 0) {
+      code += `class _AnyType:\n`;
+      code += `    def __init__(self, t):\n`;
+      code += `        self.t = t\n`;
+      code += `    def __eq__(self, other):\n`;
+      code += `        return isinstance(other, self.t)\n\n`;
+      code += `ANY_STR = _AnyType(str)\n`;
+      code += `ANY_NUM = _AnyType((int, float))\n`;
+      code += `ANY_BOOL = _AnyType(bool)\n`;
+      code += `ANY_LIST = _AnyType(list)\n\n`;
+    }
+
     code += `BASE_URL = "${baseUrl}"\n`;
 
     for (const tc of testCases) {
-      code += generateTestFunc(tc, baseUrl);
+      code += generateTestFunc(tc, baseUrl, noiseFields);
     }
 
     code += `\n`;

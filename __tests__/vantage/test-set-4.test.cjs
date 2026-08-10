@@ -1,5 +1,5 @@
 const request = require('supertest');
-const app = require('../../sample-app/app');
+const app = require('../../sample-app/app.ts');
 
 const server = app.default || app;
 
@@ -12,11 +12,11 @@ describe('Vantage API Tests (sequential)', () => {
     expect(res.status).toBe(200);
     expect(res.body).toEqual([
       {
-        "id": 1,
+        "id": expect.any(Number),
         "title": "Learn Keploy and Vantage"
       },
       {
-        "id": 2,
+        "id": expect.any(Number),
         "title": "Build Vantage"
       }
     ]);
@@ -38,11 +38,11 @@ describe('Vantage API Tests (sequential)', () => {
     expect(res.status).toBe(200);
     expect(res.body).toEqual([
       {
-        "id": 1,
+        "id": expect.any(Number),
         "title": "Learn Keploy and Vantage"
       },
       {
-        "id": 2,
+        "id": expect.any(Number),
         "title": "Build Vantage"
       }
     ]);
@@ -66,11 +66,12 @@ describe('Vantage API Tests (sequential)', () => {
       .post('/api/todos')
       .set('content-type', 'application/json')
       .set('accept', '*/*')
-      .send({"ttle":"Watch Movies"});
+      .send({"title":"Watch Movies"});
 
     expect(res.status).toBe(201);
     expect(res.body).toEqual({
-      "id": 3
+      "id": expect.any(Number),
+      "title": "Watch Movies"
     });
   });
 

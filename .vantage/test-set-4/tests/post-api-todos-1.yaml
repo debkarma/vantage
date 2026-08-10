@@ -15,9 +15,9 @@ request:
     host: localhost:3000
     accept-encoding: gzip, deflate, br
     connection: keep-alive
-    content-length: "32"
+    content-length: "33"
   body:
-    ttle: Watch Movies
+    title: Watch Movies
   query: {}
 response:
   status: 201
@@ -28,6 +28,7 @@ response:
     etag: W/"8-0rVkPUSjKXvAXSnOiVTQsEptELY"
   body:
     id: 3
+    title: Watch Movies
 curl: |-
   curl --request POST \
     --url http://localhost:3000/api/todos \
@@ -37,4 +38,4 @@ curl: |-
     --header 'cache-control: no-cache' \
     --header 'postman-token: 8f59bc95-ab5a-4ca6-b24f-6f3ffbbbc91f' \
     --header 'accept-encoding: gzip, deflate, br' \
-    --data '{"ttle":"Watch Movies"}'
+    --data '{"title":"Watch Movies"}'

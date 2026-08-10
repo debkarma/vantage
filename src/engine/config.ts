@@ -5,14 +5,28 @@ import yaml from 'yaml';
 const VANTAGE_DIR = path.join(process.cwd(), '.vantage');
 const CONFIG_PATH = path.join(VANTAGE_DIR, 'vantage.config.yaml');
 
+export interface ContainerConfig {
+  type: string;
+  image?: string;
+  seed?: string;
+  env_var: string;
+}
+
+export interface NoiseConfig {
+  headers: string[];
+  body_fields: string[];
+}
+
 export interface VantageConfig {
   version: number;
-  app_port: number;
-  record_port: number;
-  noise: {
-    headers: string[];
-    body_fields: string[];
+  app_port?: number;
+  record_port?: number;
+  noise?: NoiseConfig;
+  scripts?: {
+    pre_test?: string;
+    post_test?: string;
   };
+  containers?: ContainerConfig[];
 }
 
 const DEFAULT_CONFIG: VantageConfig = {
@@ -47,8 +61,8 @@ export function loadConfig(): VantageConfig {
     ...DEFAULT_CONFIG,
     ...parsed,
     noise: {
-      ...DEFAULT_CONFIG.noise,
-      ...(parsed.noise || {}),
+      headers: parsed.noise?.headers || DEFAULT_CONFIG.noise!.headers,
+      body_fields: parsed.noise?.body_fields || DEFAULT_CONFIG.noise!.body_fields,
     },
   };
 }

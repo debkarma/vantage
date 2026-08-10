@@ -7,4 +7,13 @@ noise:
     - ETag
     - X-Request-Id
     - Content-Length
-  body_fields: []
+  body_fields:
+    - id
+    - _id
+    - createdAt
+    - updatedAt
+    - accessToken
+    - refreshToken
+scripts:
+  pre_test: "echo [DB RESET] Running pre-test setup..."
+  post_test: "echo [DB RESET] Running post-test cleanup..."

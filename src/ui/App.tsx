@@ -17,6 +17,7 @@ import { jestGenerator } from '../generators/jest.js';
 import { pytestGenerator } from '../generators/pytest.js';
 import path from 'path';
 import fs from 'fs';
+import { startContainers, stopContainers, ContainerState } from '../engine/containers.js';
 
 interface AppProps {
   mode: 'record' | 'test' | 'list' | 'export';
@@ -30,13 +31,14 @@ interface AppProps {
   appCommand?: string;
 }
 
-function spawnApp(command: string, mode: 'record' | 'test'): ChildProcess {
+function spawnApp(command: string, mode: 'record' | 'test', extraEnv?: Record<string, string>): ChildProcess {
   const child = spawn(command, {
     shell: true,
     stdio: 'inherit',
     env: {
       ...process.env,
       VANTAGE_MODE: mode,
+      ...(extraEnv || {}),
     },
   });
   process.on('exit', () => killApp(child));
@@ -87,15 +89,34 @@ export const App = ({
         appCommand ? `Spawning target app: ${appCommand}` : `Waiting for traffic from your app (add vantageMiddleware and set VANTAGE_MODE=record)`,
       ]);
 
-      const server = startRecordServer(recordPort, testSetDir, config.app_port, (id, reqPath) => {
+      const server = startRecordServer(recordPort, testSetDir, config.app_port || 3000, (id, reqPath) => {
         setLogs(prev => [...prev, `[RECORDED] ${id}  ←  ${reqPath}`]);
       });
 
-      const child = appCommand ? spawnApp(appCommand, 'record') : undefined;
+      let child: ChildProcess | undefined;
+      let activeContainers: ContainerState[] = [];
+
+      const startEnv = async () => {
+        try {
+          if (config.containers && config.containers.length > 0) {
+            setLogs(prev => [...prev, `Starting ${config.containers!.length} ephemeral containers...`]);
+            activeContainers = await startContainers(config.containers!);
+          }
+          const extraEnv: Record<string, string> = {};
+          for (const c of activeContainers) extraEnv[c.envVar] = c.connectionString;
+          
+          if (appCommand) child = spawnApp(appCommand, 'record', extraEnv);
+        } catch (e: any) {
+          setLogs(prev => [...prev, `[ERROR] Failed to start containers: ${e.message}`]);
+        }
+      };
+
+      startEnv();
 
       return () => {
         server.close();
-        killApp(child);
+        if (child) killApp(child);
+        if (activeContainers.length > 0) stopContainers(activeContainers);
       };
     }
 
@@ -132,30 +153,67 @@ export const App = ({
         ...prev,
         `Replaying test-set-${targetSet.index} (${cases.length} tests) against ${targetUrl}`,
         appCommand ? `Spawning target app: ${appCommand}` : '',
-        waitSeconds > 0 ? `Waiting ${waitSeconds}s for app to start...` : '',
       ].filter(Boolean));
 
-      const child = appCommand ? spawnApp(appCommand, 'test') : undefined;
-      setIsRunningTests(true);
-
+      let child: ChildProcess | undefined;
       const noiseConfig: NoiseConfig = config.noise || { headers: [], body_fields: [] };
 
       const runAll = async () => {
-        if (waitSeconds > 0) {
-          await new Promise(resolve => setTimeout(resolve, waitSeconds * 1000));
-        }
+        let activeContainers: ContainerState[] = [];
+        try {
+          if (config.containers && config.containers.length > 0) {
+            setLogs(prev => [...prev, `Starting ${config.containers!.length} ephemeral containers (may take a few seconds)...`]);
+            activeContainers = await startContainers(config.containers!);
+          }
 
-        const results: TestResult[] = [];
-        for (const tc of cases) {
-          setLogs(prev => [...prev, `  Running: ${tc.id}`]);
-          const result = await runTest(tc, targetUrl, noiseConfig);
-          results.push(result);
+          const extraEnv: Record<string, string> = {};
+          for (const c of activeContainers) extraEnv[c.envVar] = c.connectionString;
+
+          if (config.scripts?.pre_test) {
+            setLogs(prev => [...prev, `Running pre-test script: ${config.scripts!.pre_test}`]);
+            execSync(config.scripts.pre_test, { stdio: 'inherit', env: { ...process.env, ...extraEnv } });
+          }
+
+          if (waitSeconds > 0) {
+            setLogs(prev => [...prev, `Waiting ${waitSeconds}s for app to start...`]);
+          }
+
+          if (appCommand) {
+            child = spawnApp(appCommand, 'test', extraEnv);
+            setIsRunningTests(true);
+          }
+
+          if (waitSeconds > 0) {
+            await new Promise(resolve => setTimeout(resolve, waitSeconds * 1000));
+          }
+
+          const results: TestResult[] = [];
+          for (const tc of cases) {
+            setLogs(prev => [...prev, `  Running: ${tc.id}`]);
+            const result = await runTest(tc, targetUrl, noiseConfig);
+            results.push(result);
+          }
+          setTestResults(results);
+          const reportPath = saveTestReport(targetSet.index, results);
+          setLogs(prev => [...prev, `Report saved to: ${path.relative(process.cwd(), reportPath)}`]);
+        } catch (e: any) {
+          setLogs(prev => [...prev, `[ERROR] ${e.message}`]);
+        } finally {
+          setIsRunningTests(false);
+          if (child) killApp(child);
+          if (config.scripts?.post_test) {
+            setLogs(prev => [...prev, `Running post-test script: ${config.scripts!.post_test}`]);
+            try {
+              execSync(config.scripts.post_test, { stdio: 'inherit' });
+            } catch (e: any) {
+              setLogs(prev => [...prev, `[ERROR] Post-test script failed: ${e.message}`]);
+            }
+          }
+          if (activeContainers.length > 0) {
+            setLogs(prev => [...prev, `Stopping ephemeral containers...`]);
+            await stopContainers(activeContainers);
+          }
         }
-        setTestResults(results);
-        const reportPath = saveTestReport(targetSet.index, results);
-        setLogs(prev => [...prev, `Report saved to: ${path.relative(process.cwd(), reportPath)}`]);
-        setIsRunningTests(false);
-        killApp(child);
       };
 
       runAll();
@@ -207,8 +265,15 @@ export const App = ({
       const defaultOutDir = exportFormat === 'jest' ? '__tests__/vantage' : 'tests/vantage';
       const outputDir = outDir || defaultOutDir;
 
+      const noiseConfig: NoiseConfig = config.noise || { headers: [], body_fields: [] };
       const generator = exportFormat === 'jest' ? jestGenerator : pytestGenerator;
-      const files = generator.generate(cases, { appEntry, targetUrl, testSetName: `test-set-${targetSetExport.index}` });
+      const files = generator.generate(cases, { 
+        appEntry, 
+        targetUrl, 
+        testSetName: `test-set-${targetSetExport.index}`,
+        noiseConfig,
+        containerConfigs: config.containers
+      });
 
       fs.mkdirSync(outputDir, { recursive: true });
       for (const file of files) {

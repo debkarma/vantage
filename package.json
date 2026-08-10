@@ -1,9 +1,15 @@
 {
   "name": "vantage",
   "version": "1.0.0",
-  "description": "",
+  "description": "HTTP-level API testing tool — record, replay, generate test code",
   "type": "module",
-  "main": "index.js",
+  "main": "./dist/cli.js",
+  "bin": {
+    "vantage": "./dist/cli.js"
+  },
+  "exports": {
+    "./sdk": "./dist/sdk/express.js"
+  },
   "scripts": {
     "build": "tsc",
     "start": "tsx src/cli.tsx",
@@ -13,11 +19,13 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@testcontainers/mongodb": "^12.1.0",
     "axios": "^1.18.1",
     "diff": "^9.0.0",
     "express": "^5.2.1",
     "ink": "^7.1.1",
     "react": "^19.2.7",
+    "testcontainers": "^12.1.0",
     "yaml": "^2.9.0"
   },
   "devDependencies": {
