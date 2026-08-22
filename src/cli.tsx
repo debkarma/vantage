@@ -30,6 +30,8 @@ function printUsage() {
     --port        Record server port (default: from config or 6789)
     --target      Target app URL for replay (default: http://localhost:3000)
     --delay       Seconds to wait before replaying (default: 0)
+    --ci          Run tests in CI mode (plain text output, JUnit XML, exits 1 on failure)
+    --watch       Run tests in watch mode (auto-re-run on file changes)
     --format      Export format: jest or pytest
     --app-entry   App module path for Supertest (Jest only)
     --test-set    Which test set to replay/export (default: latest)
@@ -65,10 +67,12 @@ const appEntry = parseFlag('--app-entry') || undefined;
 const proxyPort = parseFlag('--proxy') ? parseInt(parseFlag('--proxy')!, 10) : undefined;
 const outDir = parseFlag('--out') || undefined;
 const appCommand = parseFlag('-c') || parseFlag('--command') || undefined;
+const ciMode = args.includes('--ci');
+const watchMode = args.includes('--watch');
 
-// When stdin is not a TTY (e.g. piped or background execution),
+// When stdin is not a TTY (e.g. piped or background execution) OR in CI mode,
 // provide a dummy stream so Ink doesn't crash trying to enable raw mode.
-const renderOptions = !process.stdin.isTTY
+const renderOptions = (!process.stdin.isTTY || ciMode)
   ? { stdin: new PassThrough() as unknown as NodeJS.ReadStream }
   : {};
 
@@ -84,6 +88,8 @@ render(
     outDir={outDir}
     appCommand={appCommand}
     proxyPort={proxyPort}
+    ciMode={ciMode}
+    watchMode={watchMode}
   />,
   renderOptions
 );

@@ -18,6 +18,7 @@ import { pytestGenerator } from '../generators/pytest.js';
 import path from 'path';
 import fs from 'fs';
 import { startContainers, stopContainers, ContainerState } from '../engine/containers.js';
+import { saveJUnitReport } from '../engine/junitWriter.js';
 
 interface AppProps {
   mode: 'record' | 'test' | 'list' | 'export';
@@ -30,6 +31,8 @@ interface AppProps {
   outDir?: string;
   appCommand?: string;
   proxyPort?: number;
+  ciMode?: boolean;
+  watchMode?: boolean;
 }
 
 function spawnApp(command: string, mode: 'record' | 'test', extraEnv?: Record<string, string>): ChildProcess {
@@ -74,6 +77,8 @@ export const App = ({
   outDir,
   appCommand,
   proxyPort,
+  ciMode,
+  watchMode,
 }: AppProps) => {
   const [logs, setLogs] = useState<string[]>([]);
   const [testResults, setTestResults] = useState<TestResult[]>([]);
@@ -167,6 +172,7 @@ export const App = ({
 
       const runAll = async () => {
         let activeContainers: ContainerState[] = [];
+        let results: TestResult[] = [];
         try {
           if (config.containers && config.containers.length > 0) {
             setLogs(prev => [...prev, `Starting ${config.containers!.length} ephemeral containers (may take a few seconds)...`]);
@@ -194,7 +200,6 @@ export const App = ({
             await new Promise(resolve => setTimeout(resolve, waitSeconds * 1000));
           }
 
-          const results: TestResult[] = [];
           for (const tc of cases) {
             setLogs(prev => [...prev, `  Running: ${tc.id}`]);
             const res = await runTest(tc, finalTargetUrl, noiseConfig);
@@ -220,13 +225,47 @@ export const App = ({
             setLogs(prev => [...prev, `Stopping ephemeral containers...`]);
             await stopContainers(activeContainers);
           }
+
+          if (ciMode) {
+            const hasFailures = results.some(r => !r.passed);
+            const reportDir = path.join(process.cwd(), '.vantage', 'reports');
+            saveJUnitReport(targetSet.index, results, reportDir);
+            
+            console.log(`\n=== Vantage CI Report ===`);
+            console.log(`Results: ${results.filter(r => r.passed).length} passed, ${results.filter(r => !r.passed).length} failed, ${results.length} total`);
+            if (hasFailures) {
+              console.log(`\n❌ Tests Failed.`);
+              process.exit(1);
+            } else {
+              console.log(`\n✅ All Tests Passed.`);
+              process.exit(0);
+            }
+          }
         }
       };
 
       runAll();
 
+      let watcher: fs.FSWatcher | undefined;
+      if (watchMode) {
+        setLogs(prev => [...prev, `\n[WATCHING] Waiting for file changes to re-run tests...`]);
+        let debounceTimer: NodeJS.Timeout;
+        watcher = fs.watch(process.cwd(), { recursive: true }, (eventType, filename) => {
+          if (filename && (filename.includes('.vantage') || filename.includes('node_modules') || filename.includes('__pycache__'))) {
+            return;
+          }
+          clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(() => {
+            if (isRunningTests) return;
+            setLogs(prev => [...prev, `\n[WATCH] File changed: ${filename}, restarting...`]);
+            runAll();
+          }, 500);
+        });
+      }
+
       return () => {
         killApp(child);
+        if (watcher) watcher.close();
       };
     }
 
@@ -309,6 +348,10 @@ export const App = ({
   const passed = testResults.filter(r => r.passed).length;
   const failed = testResults.filter(r => !r.passed).length;
   const totalTimeMs = testResults.reduce((sum, r) => sum + r.timeTakenMs, 0);
+
+  if (ciMode) {
+    return null;
+  }
 
   return (
     <Box flexDirection="column" padding={1}>

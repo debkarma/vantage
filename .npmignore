@@ -1,0 +1,10 @@
+src/
+__tests__/
+sample-app/
+.vantage/
+tests/
+test_automask.js
+src/test_pg.ts
+tsconfig.json
+jest.config.cjs
+PROGRESS.md

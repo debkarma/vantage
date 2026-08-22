@@ -109,6 +109,27 @@ Phase 4 graduated Vantage from a basic API recorder into a full-fledged E2E test
 
 ---
 
+## ✅ Phase 5: CI Integration, Watch Mode & NPM Prep
+
+Phase 5 prepared Vantage for production environments and seamless local developer workflows, graduating it to a v1.0 release-ready state.
+
+### 1. CI Mode (`--ci`)
+- **Headless Execution**: Completely bypasses the interactive Ink UI, logging plain text directly to `stdout` to avoid rendering artifacts in CI pipelines.
+- **Strict Exit Codes**: Emits `process.exit(1)` if any test case fails, natively turning GitHub Actions / GitLab CI pipelines red.
+- **JUnit XML Reports**: Parses the JSON differences into the industry-standard `junit.xml` format. This allows GitHub Actions (via standard plugins) to instantly annotate pull requests with line-by-line diffs without requiring developers to read logs.
+
+### 2. Watch Mode (`--watch`)
+- Leverages Node's `fs.watch` to actively monitor the target project's root directory for file saves.
+- Debounces save events and recursively re-runs the entire test suite in the background.
+- Dynamically tears down and recreates the ephemeral Docker containers on every file change, ensuring 100% test isolation.
+
+### 3. NPM Publishing Preparation
+- Sanitized `package.json` with appropriate `keywords`, `author`, and `repository` tags.
+- Configured `.npmignore` to strictly publish the compiled `dist/` logic, ensuring the package remains lightweight.
+- Default `noise` configuration updated to automatically ignore CORS headers (`access-control-allow-origin`, `vary`) to prevent false failures between proxy recording and direct backend replay.
+
+---
+
 ## 🟡 Current Limitations & Constraints
 
 ### 1. Black Box Nature of Exported Tests
@@ -123,6 +144,6 @@ The `pytest` and `jest` exporters generate pure End-to-End network tests.
 
 ---
 
-## 🔜 Next Steps / Pending Features
-- **CI Native Flag (`--ci`)**: Generate standard JUnit XML reports and emit proper non-zero exit codes upon failure for seamless GitHub Actions integration.
-- **Watch Mode (`--watch`)**: A file-watcher to auto-re-record or auto-replay tests dynamically when code changes.
+## 🔜 Future Ideas (Post v1.0)
+- **HTTP Reverse Proxy Mode**: A standalone reverse proxy that sits in front of the target app, allowing developers to record tests against Go, Python, or Ruby backends without installing the Express middleware SDK.
+- **Response Chaining**: Allowing dynamic extraction of fields from response A (e.g. `user_id`) to inject into the request URL or body of request B during replay.

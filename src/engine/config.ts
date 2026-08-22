@@ -35,7 +35,7 @@ const DEFAULT_CONFIG: VantageConfig = {
   app_port: 3000,
   record_port: 6789,
   noise: {
-    headers: ['Date', 'ETag', 'X-Request-Id', 'Content-Length'],
+    headers: ['Date', 'ETag', 'X-Request-Id', 'Content-Length', 'Access-Control-Allow-Origin', 'Vary'],
     body_fields: [],
     smart_masking: true,
   },

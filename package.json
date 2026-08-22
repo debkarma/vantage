@@ -15,9 +15,24 @@
     "start": "tsx src/cli.tsx",
     "dev:sample": "cross-env VANTAGE_MODE=record nodemon --exec tsx sample-app/server.ts"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "api",
+    "testing",
+    "e2e",
+    "record",
+    "replay",
+    "testcontainers",
+    "mocking"
+  ],
+  "author": "debkarma",
+  "license": "MIT",
+  "files": [
+    "dist"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/debkarma/vantage.git"
+  },
   "dependencies": {
     "@testcontainers/mongodb": "^12.1.0",
     "@testcontainers/postgresql": "^12.1.0",

@@ -1,10 +1,5 @@
 import { VantageConfig } from './config.js';
-import fs from 'fs';
 
-const DEBUG_LOG = 'vantage-debug.log';
-function debugLog(msg: string) {
-  fs.appendFileSync(DEBUG_LOG, msg + '\n');
-}
 
 export interface NoiseConfig {
   headers: string[];
@@ -135,20 +130,9 @@ export function filterNoise(
   }
 
   // Apply smart masking (defaults to true if not explicitly false)
-  debugLog(`[filterNoise] noiseRules.smart_masking = ${noiseRules.smart_masking}`);
-  debugLog(`[filterNoise] typeof expectedBody = ${typeof filteredExpectedBody}`);
-  debugLog(`[filterNoise] expectedBody keys = ${filteredExpectedBody ? Object.keys(filteredExpectedBody) : 'null'}`);
-  if (filteredExpectedBody?.created_at) {
-    debugLog(`[filterNoise] created_at value = "${filteredExpectedBody.created_at}" (type: ${typeof filteredExpectedBody.created_at}, isDate: ${filteredExpectedBody.created_at instanceof Date})`);
-    debugLog(`[filterNoise] ISO regex test = ${ISO_DATE_REGEX.test(filteredExpectedBody.created_at)}`);
-  }
   if (noiseRules.smart_masking !== false) {
-    debugLog(`[filterNoise] CALLING autoMask`);
     autoMask(filteredExpectedBody);
     autoMask(filteredActualBody);
-    debugLog(`[filterNoise] AFTER autoMask, expected created_at = ${filteredExpectedBody?.created_at}`);
-  } else {
-    debugLog(`[filterNoise] SKIPPING autoMask`);
   }
 
   return {
