@@ -96,8 +96,12 @@ function buildCurl(req: TestCase['request'], port: number | null): string {
   }
 
   // Add body for POST/PUT/PATCH
-  if (req.body && Object.keys(req.body).length > 0 && ['POST', 'PUT', 'PATCH'].includes(req.method.toUpperCase())) {
-    parts.push(`  --data '${JSON.stringify(req.body)}'`);
+  if (req.body && ['POST', 'PUT', 'PATCH'].includes(req.method.toUpperCase())) {
+    if (Buffer.isBuffer(req.body) || (typeof req.body === 'string' && req.body.startsWith('data:'))) {
+      parts.push(`  --data-binary '<binary data omitted>'`);
+    } else if (Object.keys(req.body).length > 0) {
+      parts.push(`  --data '${JSON.stringify(req.body)}'`);
+    }
   }
 
   return parts.join(' \\\n');
@@ -142,6 +146,16 @@ export function saveTestCase(
   const counter = getNextCounter(testsDir, method, slug);
   const id = `${method}-${slug}-${counter}`;
 
+  let requestBody = testCase.request.body;
+  if (Buffer.isBuffer(requestBody)) {
+    requestBody = `data:application/octet-stream;base64,${requestBody.toString('base64')}`;
+  }
+
+  let responseBody = testCase.response.body;
+  if (Buffer.isBuffer(responseBody)) {
+    responseBody = `data:application/octet-stream;base64,${responseBody.toString('base64')}`;
+  }
+
   const fullTestCase: TestCase = {
     id,
     metadata: {
@@ -149,8 +163,8 @@ export function saveTestCase(
       app_port: appPort,
       vantage_version: '1.0.0',
     },
-    request: testCase.request,
-    response: testCase.response,
+    request: { ...testCase.request, body: requestBody },
+    response: { ...testCase.response, body: responseBody },
     curl: buildCurl(testCase.request, appPort),
   };
 

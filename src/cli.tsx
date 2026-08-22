@@ -56,12 +56,13 @@ if (!validCommands.includes(command)) {
   process.exit(1);
 }
 
-const targetUrl = parseFlag('--target') || 'http://localhost:3000';
+const targetUrl = parseFlag('--target') || undefined;
 const recordPort = parseInt(parseFlag('--port') || '6789', 10);
 const delay = parseInt(parseFlag('--delay') || '0', 10);
 const testSet = parseFlag('--test-set') || undefined;
 const exportFormat = parseFlag('--format') as 'jest' | 'pytest' | undefined;
 const appEntry = parseFlag('--app-entry') || undefined;
+const proxyPort = parseFlag('--proxy') ? parseInt(parseFlag('--proxy')!, 10) : undefined;
 const outDir = parseFlag('--out') || undefined;
 const appCommand = parseFlag('-c') || parseFlag('--command') || undefined;
 
@@ -82,6 +83,7 @@ render(
     appEntry={appEntry}
     outDir={outDir}
     appCommand={appCommand}
+    proxyPort={proxyPort}
   />,
   renderOptions
 );

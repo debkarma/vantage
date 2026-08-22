@@ -1,9 +1,10 @@
 import { MongoDBContainer, StartedMongoDBContainer } from '@testcontainers/mongodb';
+import { PostgreSqlContainer, StartedPostgreSqlContainer } from '@testcontainers/postgresql';
 import { ContainerConfig } from './config.js';
 import path from 'path';
 
 export interface ContainerState {
-  container: StartedMongoDBContainer;
+  container: StartedMongoDBContainer | StartedPostgreSqlContainer;
   envVar: string;
   connectionString: string;
 }
@@ -49,8 +50,29 @@ export async function startContainers(configs: ContainerConfig[]): Promise<Conta
         envVar: config.env_var,
         connectionString,
       });
+    } else if (config.type === 'postgresql') {
+      let container = new PostgreSqlContainer(config.image || 'postgres:15');
+      
+      if (config.seed) {
+        const seedPath = path.resolve(process.cwd(), config.seed);
+        const fileName = path.basename(seedPath);
+        container = container.withBindMounts([{
+          source: seedPath,
+          target: `/docker-entrypoint-initdb.d/${fileName}`
+        }]);
+      }
+
+      const started = await container.start();
+      // SQLAlchemy requires 'postgresql://' instead of 'postgres://'
+      const connectionString = started.getConnectionUri().replace(/^postgres:\/\//, 'postgresql://');
+
+      states.push({
+        container: started,
+        envVar: config.env_var,
+        connectionString,
+      });
     } else {
-      throw new Error(`Unsupported container type: ${config.type}. Only 'mongodb' is supported in v1.`);
+      throw new Error(`Unsupported container type: ${config.type}. Supported types: mongodb, postgresql`);
     }
   }
 

@@ -21,7 +21,7 @@ import { startContainers, stopContainers, ContainerState } from '../engine/conta
 
 interface AppProps {
   mode: 'record' | 'test' | 'list' | 'export';
-  targetUrl: string;
+  targetUrl?: string;
   recordPort: number;
   delay: number;
   testSet?: string;
@@ -29,6 +29,7 @@ interface AppProps {
   appEntry?: string;
   outDir?: string;
   appCommand?: string;
+  proxyPort?: number;
 }
 
 function spawnApp(command: string, mode: 'record' | 'test', extraEnv?: Record<string, string>): ChildProcess {
@@ -42,6 +43,10 @@ function spawnApp(command: string, mode: 'record' | 'test', extraEnv?: Record<st
     },
   });
   process.on('exit', () => killApp(child));
+  process.on('SIGINT', () => {
+    killApp(child);
+    process.exit(0);
+  });
   return child;
 }
 
@@ -68,6 +73,7 @@ export const App = ({
   appEntry,
   outDir,
   appCommand,
+  proxyPort,
 }: AppProps) => {
   const [logs, setLogs] = useState<string[]>([]);
   const [testResults, setTestResults] = useState<TestResult[]>([]);
@@ -89,7 +95,7 @@ export const App = ({
         appCommand ? `Spawning target app: ${appCommand}` : `Waiting for traffic from your app (add vantageMiddleware and set VANTAGE_MODE=record)`,
       ]);
 
-      const server = startRecordServer(recordPort, testSetDir, config.app_port || 3000, (id, reqPath) => {
+      const server = startRecordServer(recordPort, testSetDir, config.app_port || 3000, proxyPort, (id, reqPath) => {
         setLogs(prev => [...prev, `[RECORDED] ${id}  ←  ${reqPath}`]);
       });
 
@@ -147,11 +153,12 @@ export const App = ({
         return;
       }
 
+      const finalTargetUrl = targetUrl || `http://localhost:${config.app_port}`;
       const waitSeconds = delay > 0 ? delay : (appCommand ? 3 : 0);
 
       setLogs(prev => [
         ...prev,
-        `Replaying test-set-${targetSet.index} (${cases.length} tests) against ${targetUrl}`,
+        `Replaying test-set-${targetSet.index} (${cases.length} tests) against ${finalTargetUrl}`,
         appCommand ? `Spawning target app: ${appCommand}` : '',
       ].filter(Boolean));
 
@@ -190,8 +197,8 @@ export const App = ({
           const results: TestResult[] = [];
           for (const tc of cases) {
             setLogs(prev => [...prev, `  Running: ${tc.id}`]);
-            const result = await runTest(tc, targetUrl, noiseConfig);
-            results.push(result);
+            const res = await runTest(tc, finalTargetUrl, noiseConfig);
+            results.push(res);
           }
           setTestResults(results);
           const reportPath = saveTestReport(targetSet.index, results);

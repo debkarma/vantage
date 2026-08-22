@@ -1,0 +1,42 @@
+id: post-api-proxy-test-1
+metadata:
+  created_at: 2026-08-17T16:05:43.417Z
+  app_port: 3000
+  vantage_version: 1.0.0
+request:
+  method: POST
+  path: /api/proxy-test
+  headers:
+    host: localhost:6789
+    connection: keep-alive
+    content-type: application/json
+    accept: "*/*"
+    accept-language: "*"
+    sec-fetch-mode: cors
+    user-agent: node
+    accept-encoding: gzip, deflate
+    content-length: "21"
+  query: {}
+  body:
+    test: proxy_mode
+response:
+  status: 200
+  headers:
+    content-type: application/json
+    date: Mon, 17 Aug 2026 16:05:43 GMT
+    connection: keep-alive
+    keep-alive: timeout=5
+    transfer-encoding: chunked
+  body:
+    message: Hello from dummy Python server!
+    proxyWorks: true
+curl: |-
+  curl --request POST \
+    --url http://localhost:3000/api/proxy-test \
+    --header 'content-type: application/json' \
+    --header 'accept: */*' \
+    --header 'accept-language: *' \
+    --header 'sec-fetch-mode: cors' \
+    --header 'user-agent: node' \
+    --header 'accept-encoding: gzip, deflate' \
+    --data '{"test":"proxy_mode"}'

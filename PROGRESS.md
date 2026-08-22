@@ -75,6 +75,54 @@ Reports in `.vantage/reports/test-run-X/` now include:
 
 ---
 
-## ⏭️ Phase 3: Test Code Generation (Not Started)
+## ✅ Phase 3: Test Code Generation (Jest & Pytest)
 
-Convert recorded YAML test cases into native test files (Jest/Supertest, Pytest/httpx) that run independently without Vantage.
+Phase 3 focused on providing developers with an "eject button." Developers can export Vantage YAML records into native code test suites if their CI pipeline strictly requires it.
+
+### 1. `vantage export` Command
+- Allows developers to export the latest test-set (or a specific one via `--test-set`).
+- **Jest / Supertest (`--format jest`)**: Generates Node.js tests using `supertest`. Requires the `--app-entry` flag to import the Express app for in-memory testing.
+- **Pytest / HTTPX (`--format pytest`)**: Generates pure End-to-End HTTP tests using Python's `httpx`.
+
+### 2. Export Generation Architecture
+- Reads the YAML test files, sanitizes headers (removes hop-by-hop like `content-length`), and dynamically generates standard assertion code (`assert response.status_code == 200` and `assert response.json() == {...}`).
+
+---
+
+## ✅ Phase 4: Production-Grade E2E Orchestration & Smart Noise Filtering
+
+Phase 4 graduated Vantage from a basic API recorder into a full-fledged E2E testing orchestrator capable of testing complex apps (like FastAPI) that require database state and authentication.
+
+### 1. Form Data Proxying
+- Added `URLSearchParams` serialization so `application/x-www-form-urlencoded` payloads (like Swagger UI OAuth2 Sign In) are intercepted correctly without corrupting the proxy stream.
+
+### 2. Ephemeral Testcontainers (Docker Integration)
+- The engine dynamically parses `.vantage/vantage.config.yaml` to spin up fresh Docker containers immediately prior to running tests.
+- Uses `@testcontainers/postgresql` (and supports generic containers) to provide an isolated database for every test run.
+- Automatically maps random host ports and dynamically sets the resulting `DATABASE_URL` environment variable for the child app process.
+- Force-kills containers when tests finish.
+
+### 3. Smart Noise Filtering (Regex Auto-Masking)
+- **Automatic Masking**: Vantage uses intelligent Regex pattern matching to automatically identify and mask standard UUIDs, JWT tokens, and ISO-8601 Timestamps.
+- **YAML Native Date Handling**: Explicitly intercepts and masks native JavaScript `Date` objects which are automatically parsed by standard YAML decoders when reading timestamps from test files.
+- Automatically normalizes both the `expected` and `actual` payloads to `<AUTO_MASKED_DATE>`, `<AUTO_MASKED_UUID>`, and `<AUTO_MASKED_JWT>` before `diffJson` is called, ensuring that volatile backend tokens never cause false test failures.
+
+---
+
+## 🟡 Current Limitations & Constraints
+
+### 1. Black Box Nature of Exported Tests
+The `pytest` and `jest` exporters generate pure End-to-End network tests. 
+- **Limitation**: The exported tests do not carry over Vantage's powerful orchestrator. They will not automatically spin up ephemeral Docker containers or start the FastAPI backend. Developers running the exported code must manage the server and database lifecycle manually.
+
+### 2. Database Seeding Paradigm
+- **Limitation**: Because Vantage spins up an *empty* ephemeral container for every test run, the test suite must be entirely self-contained. The suite must begin with setup requests (like `POST /signup`) to seed the database with necessary entities. If a developer runs tests out of order, the replay will fail because the database is empty.
+
+### 3. Smart Masking Boundaries
+- **Limitation**: While standard timestamps and UUIDs are caught cleanly, non-standard volatile strings (such as dynamically generated filenames like `/uploads/1787410452-cover.jpeg`) cannot be safely auto-masked without risking false positives. Developers must manually configure these specific paths in the `vantage.config.yaml` `body_fields` block.
+
+---
+
+## 🔜 Next Steps / Pending Features
+- **CI Native Flag (`--ci`)**: Generate standard JUnit XML reports and emit proper non-zero exit codes upon failure for seamless GitHub Actions integration.
+- **Watch Mode (`--watch`)**: A file-watcher to auto-re-record or auto-replay tests dynamically when code changes.

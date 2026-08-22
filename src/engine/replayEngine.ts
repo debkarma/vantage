@@ -35,11 +35,16 @@ export async function runTest(
       }
     }
 
+    let requestData = Object.keys(testCase.request.body || {}).length > 0 ? testCase.request.body : undefined;
+    if (typeof requestData === 'string' && requestData.startsWith('data:application/octet-stream;base64,')) {
+      requestData = Buffer.from(requestData.split(',')[1], 'base64');
+    }
+
     const res = await axios({
       method: testCase.request.method,
       url,
       headers: cleanHeaders,
-      data: Object.keys(testCase.request.body || {}).length > 0 ? testCase.request.body : undefined,
+      data: requestData,
       params: testCase.request.query,
       validateStatus: () => true,
     });

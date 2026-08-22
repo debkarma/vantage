@@ -6,7 +6,7 @@ const VANTAGE_DIR = path.join(process.cwd(), '.vantage');
 const CONFIG_PATH = path.join(VANTAGE_DIR, 'vantage.config.yaml');
 
 export interface ContainerConfig {
-  type: string;
+  type: 'mongodb' | 'postgresql';
   image?: string;
   seed?: string;
   env_var: string;
@@ -15,6 +15,7 @@ export interface ContainerConfig {
 export interface NoiseConfig {
   headers: string[];
   body_fields: string[];
+  smart_masking?: boolean;
 }
 
 export interface VantageConfig {
@@ -36,6 +37,7 @@ const DEFAULT_CONFIG: VantageConfig = {
   noise: {
     headers: ['Date', 'ETag', 'X-Request-Id', 'Content-Length'],
     body_fields: [],
+    smart_masking: true,
   },
 };
 
@@ -63,6 +65,7 @@ export function loadConfig(): VantageConfig {
     noise: {
       headers: parsed.noise?.headers || DEFAULT_CONFIG.noise!.headers,
       body_fields: parsed.noise?.body_fields || DEFAULT_CONFIG.noise!.body_fields,
+      smart_masking: parsed.noise?.smart_masking !== undefined ? parsed.noise.smart_masking : true,
     },
   };
 }
