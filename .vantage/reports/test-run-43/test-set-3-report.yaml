@@ -1,0 +1,96 @@
+status: FAILED
+created_at: 2026-08-22T17:29:29.442Z
+summary:
+  total: 8
+  passed: 0
+  failed: 8
+  total_time_ms: 129
+tests:
+  - id: get-api-todos-1
+    status: FAILED
+    time_taken_ms: 41
+    actual_status: 0
+    expected_status: 200
+    failure_category: CONNECTION_ERROR
+    body_diff:
+      - value: ""
+        added: true
+        removed: false
+        count: 1
+  - id: post-api-todos-1
+    status: FAILED
+    time_taken_ms: 10
+    actual_status: 0
+    expected_status: 201
+    failure_category: CONNECTION_ERROR
+    body_diff:
+      - value: ""
+        added: true
+        removed: false
+        count: 1
+  - id: post-api-todos-2
+    status: FAILED
+    time_taken_ms: 8
+    actual_status: 0
+    expected_status: 201
+    failure_category: CONNECTION_ERROR
+    body_diff:
+      - value: ""
+        added: true
+        removed: false
+        count: 1
+  - id: put-api-todos-1
+    status: FAILED
+    time_taken_ms: 10
+    actual_status: 0
+    expected_status: 404
+    failure_category: CONNECTION_ERROR
+    body_diff:
+      - value: ""
+        added: true
+        removed: false
+        count: 1
+  - id: put-api-todos-1-1
+    status: FAILED
+    time_taken_ms: 12
+    actual_status: 0
+    expected_status: 200
+    failure_category: CONNECTION_ERROR
+    body_diff:
+      - value: ""
+        added: true
+        removed: false
+        count: 1
+  - id: get-api-todos-2
+    status: FAILED
+    time_taken_ms: 27
+    actual_status: 0
+    expected_status: 200
+    failure_category: CONNECTION_ERROR
+    body_diff:
+      - value: ""
+        added: true
+        removed: false
+        count: 1
+  - id: delete-api-todos-4-1
+    status: FAILED
+    time_taken_ms: 10
+    actual_status: 0
+    expected_status: 204
+    failure_category: CONNECTION_ERROR
+    body_diff:
+      - value: ""
+        added: true
+        removed: false
+        count: 1
+  - id: get-api-todos-3
+    status: FAILED
+    time_taken_ms: 11
+    actual_status: 0
+    expected_status: 200
+    failure_category: CONNECTION_ERROR
+    body_diff:
+      - value: ""
+        added: true
+        removed: false
+        count: 1

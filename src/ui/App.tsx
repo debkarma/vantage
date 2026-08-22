@@ -17,8 +17,145 @@ import { jestGenerator } from '../generators/jest.js';
 import { pytestGenerator } from '../generators/pytest.js';
 import path from 'path';
 import fs from 'fs';
+import * as diff from 'diff';
 import { startContainers, stopContainers, ContainerState } from '../engine/containers.js';
 import { saveJUnitReport } from '../engine/junitWriter.js';
+
+const LOGO_LINES = [
+  " _    __            __                  ",
+  "| |  / /___ _____  / /_____ _____ ____  ",
+  "| | / / __ `/ __ \\/ __/ __ `/ __ `/ _ \\ ",
+  "| |/ / /_/ / / / / /_/ /_/ / /_/ /  __/ ",
+  "|___/\\__,_/_/ /_/\\__/\\__,_/\\__, /\\___/  ",
+  "                          /____/        "
+];
+
+const GRADIENT = [
+  '#00FFFF',
+  '#00E5FF',
+  '#00CCFF',
+  '#00B2FF',
+  '#0099FF',
+  '#007FFF'
+];
+
+function Header() {
+  return (
+    <Box flexDirection="column" marginBottom={1}>
+      <Box flexDirection="column" paddingBottom={0}>
+        {LOGO_LINES.map((line, i) => (
+          <Text key={i} color={GRADIENT[i]} bold>{line}</Text>
+        ))}
+      </Box>
+      <Box marginTop={1} marginLeft={1}>
+        <Text color="#007FFF" dimColor>version: 1.0.0-dev</Text>
+      </Box>
+    </Box>
+  );
+}
+
+function LogItem({ text }: { text: string }) {
+  let type = 'INFO';
+  let typeColor = 'cyan';
+  let cleanText = text;
+
+  if (text.startsWith('[RECORDED]')) {
+    type = 'SUCCESS';
+    typeColor = 'green';
+    cleanText = text.replace('[RECORDED] ', '');
+  } else if (text.startsWith('[ERROR]')) {
+    type = 'ERROR';
+    typeColor = 'red';
+    cleanText = text.replace('[ERROR] ', '');
+  } else if (text.startsWith('\\n[WATCH') || text.startsWith('[WATCH')) {
+    type = 'WATCH';
+    typeColor = 'yellow';
+    cleanText = text.replace(/\\n?\[WATCH(ING)?\]\s*/, '');
+  } else if (text.startsWith('  Running:')) {
+    type = 'TEST';
+    typeColor = 'blue';
+  } else if (text.startsWith('Report saved')) {
+    type = 'SUCCESS';
+    typeColor = 'green';
+  }
+
+  // Handle newlines in the original string (like \\n[WATCH])
+  const showNewline = text.startsWith('\\n');
+
+  return (
+    <Box flexDirection="column">
+      {showNewline && <Text> </Text>}
+      <Box>
+        <Text color="#00CCFF">⚡ Vantage: </Text>
+        <Text color={typeColor} bold>{type.padEnd(8)}</Text>
+        <Text color={type === 'ERROR' ? 'red' : 'white'}>{cleanText}</Text>
+      </Box>
+    </Box>
+  );
+}
+
+function FailureTable({ res }: { res: TestResult }) {
+  return (
+    <Box flexDirection="column" marginTop={1} marginBottom={1}>
+      <Text dimColor>--------------------------------------------------------------------</Text>
+      <Box flexDirection="column" borderStyle="single" borderColor="gray" marginY={1}>
+        <Box justifyContent="center" paddingBottom={1}>
+          <Text bold color="white">{res.testId.toUpperCase()}</Text>
+        </Box>
+        <Box flexDirection="column">
+          <Box>
+            <Box width="50%" justifyContent="center"><Text dimColor>EXPECT STATUS</Text></Box>
+            <Box width="50%" justifyContent="center" borderStyle="single" borderTop={false} borderBottom={false} borderRight={false} borderColor="gray"><Text dimColor>ACTUAL STATUS</Text></Box>
+          </Box>
+          <Box borderStyle="single" borderTop borderBottom={false} borderLeft={false} borderRight={false} borderColor="gray">
+            <Box width="50%" justifyContent="center"><Text color="green">{res.expectedStatus}</Text></Box>
+            <Box width="50%" justifyContent="center" borderStyle="single" borderTop={false} borderBottom={false} borderRight={false} borderColor="gray"><Text color="red">{res.actualStatus}</Text></Box>
+          </Box>
+        </Box>
+
+        {res.headerDiffs && res.headerDiffs.some((d: diff.Change) => d.added || d.removed) && (
+          <Box flexDirection="column" borderStyle="single" borderTop borderBottom={false} borderLeft={false} borderRight={false} borderColor="gray" paddingTop={1}>
+            <Box justifyContent="center" marginBottom={1}><Text dimColor>HEADER DIFFS</Text></Box>
+            <Box flexDirection="column" paddingX={2}>
+              {res.headerDiffs.map((d: diff.Change, j: number) => {
+                if (d.added) return <Text key={`h${j}`} color="green">+{d.value.trim()}</Text>;
+                if (d.removed) return <Text key={`h${j}`} color="red">-{d.value.trim()}</Text>;
+                return <Text key={`h${j}`} dimColor>{d.value.trim()}</Text>;
+              })}
+            </Box>
+          </Box>
+        )}
+
+        {res.bodyDiffs && res.bodyDiffs.some((d: diff.Change) => d.added || d.removed) && (
+          <Box flexDirection="column" borderStyle="single" borderTop borderBottom={false} borderLeft={false} borderRight={false} borderColor="gray" paddingTop={1}>
+            <Box justifyContent="center" marginBottom={1}><Text dimColor>BODY DIFFS</Text></Box>
+            <Box flexDirection="column" paddingX={2}>
+              {res.bodyDiffs.map((d: diff.Change, j: number) => {
+                if (d.added) return <Text key={j} color="green">+{d.value.trimEnd()}</Text>;
+                if (d.removed) return <Text key={j} color="red">-{d.value.trimEnd()}</Text>;
+                return <Text key={j} dimColor>{d.value.trimEnd()}</Text>;
+              })}
+            </Box>
+          </Box>
+        )}
+      </Box>
+    </Box>
+  );
+}
+
+function TestrunSummary({ testSet, total, passed, failed, timeTakenMs }: any) {
+  return (
+    <Box flexDirection="column" marginTop={1} marginBottom={1}>
+      <Text dimColor>{` <=========================================>`}</Text>
+      <Text bold>  TESTRUN SUMMARY. For test-set: "{testSet}"</Text>
+      <Text>        Total tests:        {total}</Text>
+      <Text>        Total test passed:  <Text color={passed > 0 ? "green" : "white"}>{passed}</Text></Text>
+      <Text>        Total test failed:  <Text color={failed > 0 ? "red" : "white"}>{failed}</Text></Text>
+      <Text>        Time Taken:         "{(timeTakenMs / 1000).toFixed(2)} s"</Text>
+      <Text dimColor>{` <=========================================>`}</Text>
+    </Box>
+  );
+}
 
 interface AppProps {
   mode: 'record' | 'test' | 'list' | 'export';
@@ -355,9 +492,7 @@ export const App = ({
 
   return (
     <Box flexDirection="column" padding={1}>
-      <Box borderStyle="round" borderColor="cyan" padding={1} marginBottom={1}>
-        <Text color="cyan" bold>Vantage — API Test Generation & Replay</Text>
-      </Box>
+      <Header />
 
       {/* ── RECORD MODE ── */}
       {mode === 'record' && (
@@ -366,7 +501,7 @@ export const App = ({
           <Text color="gray">Press 'q' to stop recording.</Text>
           <Box flexDirection="column" marginTop={1}>
             {logs.map((log, i) => (
-              <Text key={i} color={log.startsWith('[RECORDED]') ? 'green' : 'white'}>{log}</Text>
+              <LogItem key={i} text={log} />
             ))}
           </Box>
         </Box>
@@ -380,47 +515,33 @@ export const App = ({
 
           <Box flexDirection="column" marginTop={1}>
             {logs.map((log, i) => (
-              <Text key={i} color="gray">{log}</Text>
+              <LogItem key={i} text={log} />
             ))}
           </Box>
 
           {!isRunningTests && testResults.length > 0 && (
             <Box flexDirection="column" marginTop={1}>
-              <Box borderStyle="single" borderColor={failed > 0 ? 'red' : 'green'} padding={1} flexDirection="column">
-                <Text bold>Results: {passed} passed, {failed} failed, {testResults.length} total ({totalTimeMs}ms)</Text>
-              </Box>
-
               <Box flexDirection="column" marginTop={1}>
                 {testResults.map((res, i) => (
-                  <Box key={i} flexDirection="column" marginBottom={1}>
-                    <Text color={res.passed ? 'green' : 'red'}>
-                      {res.passed ? '  ✔' : '  ✖'} {res.testId} ({res.timeTakenMs}ms)
-                      {!res.passed && ` [${res.failureCategory}]${res.failureCategory === 'STATUS_CODE_CHANGED' ? ` (expected: ${res.expectedStatus}, actual: ${res.actualStatus})` : ''}`}
-                    </Text>
-
-                    {!res.passed && res.bodyDiffs && res.bodyDiffs.length > 0 && (
-                      <Box flexDirection="column" marginLeft={4}>
-                        {res.bodyDiffs.map((d, j) => {
-                          if (d.added) return <Text key={j} color="green">+{d.value}</Text>;
-                          if (d.removed) return <Text key={j} color="red">-{d.value}</Text>;
-                          return null;
-                        })}
-                      </Box>
-                    )}
-
-                    {!res.passed && res.headerDiffs && res.headerDiffs.some(d => d.added || d.removed) && (
-                      <Box flexDirection="column" marginLeft={4}>
-                        <Text color="yellow" dimColor>Header diffs:</Text>
-                        {res.headerDiffs.map((d, j) => {
-                          if (d.added) return <Text key={`h${j}`} color="green">+{d.value}</Text>;
-                          if (d.removed) return <Text key={`h${j}`} color="red">-{d.value}</Text>;
-                          return null;
-                        })}
-                      </Box>
+                  <Box key={i} flexDirection="column" marginBottom={0}>
+                    {res.passed ? (
+                      <Text color="green">
+                        {'  ✔'} {res.testId} ({res.timeTakenMs}ms)
+                      </Text>
+                    ) : (
+                      <FailureTable key={`fail-${i}`} res={res} />
                     )}
                   </Box>
                 ))}
               </Box>
+
+              <TestrunSummary 
+                testSet={testSet || 'latest'} 
+                total={testResults.length} 
+                passed={passed} 
+                failed={failed} 
+                timeTakenMs={totalTimeMs} 
+              />
             </Box>
           )}
         </Box>
@@ -439,9 +560,9 @@ export const App = ({
               ))}
             </Box>
           ) : (
-            <Box marginTop={1}>
+            <Box marginTop={1} flexDirection="column">
               {logs.map((log, i) => (
-                <Text key={i} color="gray">{log}</Text>
+                <LogItem key={i} text={log} />
               ))}
             </Box>
           )}
@@ -452,9 +573,9 @@ export const App = ({
       {mode === 'export' && (
         <Box flexDirection="column">
           <Text color="magenta" bold>📤 EXPORT</Text>
-          <Box marginTop={1}>
+          <Box marginTop={1} flexDirection="column">
             {logs.map((log, i) => (
-              <Text key={i} color="gray">{log}</Text>
+              <LogItem key={i} text={log} />
             ))}
           </Box>
         </Box>

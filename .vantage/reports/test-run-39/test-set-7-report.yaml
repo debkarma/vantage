@@ -1,0 +1,19 @@
+status: FAILED
+created_at: 2026-08-22T17:23:11.903Z
+summary:
+  total: 1
+  passed: 0
+  failed: 1
+  total_time_ms: 33
+tests:
+  - id: post-api-proxy-test-1
+    status: FAILED
+    time_taken_ms: 33
+    actual_status: 0
+    expected_status: 200
+    failure_category: CONNECTION_ERROR
+    body_diff:
+      - value: ""
+        added: true
+        removed: false
+        count: 1
