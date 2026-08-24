@@ -37,9 +37,10 @@ function printUsage() {
     --test-set    Which test set to replay/export (default: latest)
     --out         Output directory for generated tests
     --command, -c Command to start target app automatically (e.g. "npm start")
+    --proxy       Enable reverse proxy mode for non-Node backends (e.g. 5000)
 
   Examples:
-    vantage record -c "npm run dev:sample"
+    vantage record -c "python main.py" --proxy 5000
     vantage test -c "npm run dev:sample" --delay 3
     vantage list
     vantage export --format jest --app-entry ../../src/app
