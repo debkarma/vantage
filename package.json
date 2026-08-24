@@ -1,5 +1,5 @@
 {
-  "name": "vantage",
+  "name": "vantage-cli",
   "version": "1.0.0",
   "description": "HTTP-level API testing tool — record, replay, generate test code",
   "type": "module",

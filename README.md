@@ -24,13 +24,13 @@ It takes the magic of enterprise API testing platforms (like Keploy) and distill
 Install Vantage globally to use the CLI anywhere on your machine:
 
 ```bash
-npm install -g vantage
+npm install -g vantage-cli
 ```
 
 Or run it directly via npx without installing:
 
 ```bash
-npx vantage
+npx vantage-cli
 ```
 
 ---
