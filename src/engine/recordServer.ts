@@ -1,6 +1,6 @@
 import express from 'express';
 import { saveTestCase } from './storage.js';
-
+import { loadConfig } from './config.js';
 import axios from 'axios';
 
 export function startRecordServer(
@@ -14,6 +14,16 @@ export function startRecordServer(
   app.use(express.json({ limit: '10mb' }));
   app.use(express.urlencoded({ extended: true, limit: '10mb' }));
   app.use(express.raw({ type: '*/*', limit: '50mb' }));
+
+  const config = loadConfig();
+  const ignorePaths = config.noise?.ignore_paths || [];
+
+  function shouldIgnore(url: string): boolean {
+    return ignorePaths.some(pattern => {
+      if (pattern.startsWith('*.')) return url.endsWith(pattern.slice(1));
+      return url.includes(pattern);
+    });
+  }
 
   if (proxyPort) {
     // Reverse Proxy Mode: Intercept, forward, and record all traffic
@@ -55,8 +65,10 @@ export function startRecordServer(
           body: axiosRes.data,
         };
 
-        const id = saveTestCase(testSetDir, { request: requestData, response: responseData }, appPort);
-        onRecord(id, req.originalUrl);
+        if (!shouldIgnore(req.originalUrl)) {
+          const id = saveTestCase(testSetDir, { request: requestData, response: responseData }, appPort);
+          onRecord(id, req.originalUrl);
+        }
 
         // Relay actual response to client
         const headersToRelay = { ...axiosRes.headers };
@@ -74,9 +86,13 @@ export function startRecordServer(
     app.post('/record', (req, res) => {
       try {
         const { request, response } = req.body;
-        const id = saveTestCase(testSetDir, { request, response }, appPort);
-        onRecord(id, request.path);
-        res.status(200).json({ success: true, id });
+        if (!shouldIgnore(request.path)) {
+          const id = saveTestCase(testSetDir, { request, response }, appPort);
+          onRecord(id, request.path);
+          res.status(200).json({ success: true, id });
+        } else {
+          res.status(200).json({ success: true, ignored: true });
+        }
       } catch (e) {
         console.error('Error saving record:', e);
         res.status(500).json({ success: false });

@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import axios from 'axios';
+import { loadConfig } from '../engine/config.js';
 
 const VANTAGE_SERVER = 'http://127.0.0.1:6789';
 
@@ -7,8 +8,22 @@ export const vantageMiddleware = (req: Request, res: Response, next: NextFunctio
   if (process.env.VANTAGE_MODE !== 'record') {
     return next(); // If not in record mode, just pass through
   }
+
+  // Load config dynamically per request to pick up changes, or we could load it once. Let's load once per request for now since dev mode restarts anyway.
+  const config = loadConfig();
+  const ignorePaths = config.noise?.ignore_paths || [];
+  const url = req.originalUrl || req.url;
+
+  const shouldIgnore = ignorePaths.some(pattern => {
+    if (pattern.startsWith('*.')) return url.endsWith(pattern.slice(1));
+    return url.includes(pattern);
+  });
+
+  if (shouldIgnore) {
+    return next();
+  }
   
-  console.log(`[Vantage SDK] Intercepting request: ${req.method} ${req.url}`);
+  console.log(`[Vantage SDK] Intercepting request: ${req.method} ${url}`);
 
   // Intercept the response
   const originalSend = res.send;

@@ -1,0 +1,33 @@
+status: PASSED
+created_at: 2026-08-22T17:36:32.843Z
+summary:
+  total: 5
+  passed: 5
+  failed: 0
+  total_time_ms: 87
+tests:
+  - id: get-api-todos-1
+    status: PASSED
+    time_taken_ms: 26
+    actual_status: 200
+    expected_status: 200
+  - id: delete-api-todos-4-1
+    status: PASSED
+    time_taken_ms: 7
+    actual_status: 204
+    expected_status: 204
+  - id: get-api-todos-2
+    status: PASSED
+    time_taken_ms: 7
+    actual_status: 200
+    expected_status: 200
+  - id: put-api-todos-10-1
+    status: PASSED
+    time_taken_ms: 24
+    actual_status: 404
+    expected_status: 404
+  - id: post-api-todos-1
+    status: PASSED
+    time_taken_ms: 23
+    actual_status: 201
+    expected_status: 201

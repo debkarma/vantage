@@ -16,6 +16,7 @@ export interface NoiseConfig {
   headers: string[];
   body_fields: string[];
   smart_masking?: boolean;
+  ignore_paths?: string[];
 }
 
 export interface VantageConfig {
@@ -38,6 +39,7 @@ const DEFAULT_CONFIG: VantageConfig = {
     headers: ['Date', 'ETag', 'X-Request-Id', 'Content-Length', 'Access-Control-Allow-Origin', 'Vary'],
     body_fields: [],
     smart_masking: true,
+    ignore_paths: ['/_next/', '/__vite_ping', '.ico', '.css', '.js', '.png', '.jpg', '.jpeg', '.svg', '.woff2'],
   },
 };
 
