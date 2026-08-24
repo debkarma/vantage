@@ -1,6 +1,6 @@
 {
   "name": "vantage-cli",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "HTTP-level API testing tool — record, replay, generate test code",
   "type": "module",
   "main": "./dist/cli.js",
