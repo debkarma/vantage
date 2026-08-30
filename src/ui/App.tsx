@@ -175,7 +175,7 @@ interface AppProps {
 function spawnApp(command: string, mode: 'record' | 'test', extraEnv?: Record<string, string>): ChildProcess {
   const child = spawn(command, {
     shell: true,
-    stdio: 'inherit',
+    stdio: ['ignore', 'inherit', 'inherit'],
     env: {
       ...process.env,
       VANTAGE_MODE: mode,
