@@ -85,6 +85,9 @@ vantage test --ci -c "node server.js"
 
 # Run in Watch mode for local active development
 vantage test --watch -c "npx tsx server.ts" --target http://127.0.0.1:3000
+
+# Run the sample app tests
+npm run test:sample
 ```
 
 ---

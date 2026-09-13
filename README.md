@@ -1,108 +1,107 @@
-# ⚡ Vantage
+<p style="text-align:center;" align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="./.github/assets/logo-white.png">
+    <source media="(prefers-color-scheme: light)" srcset="./.github/assets/logo.png">
+    <img src="./.github/assets/logo.png" alt="Vantage Logo" width="30%" />
+  </picture>
+  <br /><br />
+</p>
+<p align="center">
+<a href="https://github.com/debkarma/vantage/blob/main/LICENSE" alt="LICENSE">
+  <img src="https://img.shields.io/github/license/debkarma/vantage?color=brightgreen" /></a>
+<a href="https://github.com/debkarma/vantage/actions" alt="Build Status">
+  <img src="https://img.shields.io/github/actions/workflow/status/debkarma/vantage/release.yml" /></a>
+<br />
+</p>
 
-**Vantage** is an ultra-fast, zero-config API testing tool that automatically generates and replays end-to-end tests by intercepting your HTTP traffic. 
+<p align="center">
+Vantage is a zero-code API testing tool that automatically generates and replays end-to-end tests by intercepting your HTTP traffic. 
+</p>
 
-No more writing tedious boilerplate tests. Just start your app, run your standard manual test flows (via Postman, curl, or your frontend), and Vantage will automatically record the requests, responses, and database state.
+<p align="center">
+By operating as a transparent reverse proxy, Vantage frees you from writing tedious boilerplate tests while ensuring deterministic test execution through ephemeral database provisioning.
+</p>
+<br />
 
-It takes the magic of enterprise API testing platforms (like Keploy) and distills it into an incredibly lightweight, fast, open-source CLI tailored for the modern JavaScript ecosystem.
+# Functionality
 
----
+## Automated Traffic Recording
 
-## 🚀 Features
+Vantage intercepts and records HTTP traffic using a lightweight reverse proxy. This architecture is entirely language-agnostic and requires **zero code changes**—whether your backend is built with Node.js, Python, Go, Java, or Ruby.
 
-- 📹 **Traffic Recording**: Instantly intercept and record incoming HTTP traffic to your local server.
-- ♻️ **Deterministic Replay**: Auto-provisions isolated, ephemeral databases via **Testcontainers** for 100% deterministic test execution.
-- 🎭 **Smart Masking**: Automatically ignores volatile JSON fields (like `updatedAt`, timestamps, and UUIDs) when diffing responses.
-- 🤖 **CI Native**: Built-in `--ci` mode natively outputs standard **JUnit XML** for seamless GitHub Actions / GitLab CI integration.
-- ⚡ **Watch Mode**: Run `vantage test --watch` for instant background hot-reloading during local development.
-- 📤 **Eject Button**: Don't want vendor lock-in? Export your entire test suite to native `pytest` or `jest` test files instantly.
+<details><summary><h4>Smart Response Masking</h4></summary>
+Vantage intelligently handles dynamic response data. It automatically ignores volatile JSON fields such as timestamps, JWTs, and UUIDs when diffing responses, preventing flaky tests without requiring manual configuration.
+</details>
 
----
+## Ephemeral Infrastructure
 
-## 📦 Installation
+Testing stateful APIs is traditionally difficult because tests mutate database records. Vantage integrates deeply with **Testcontainers** to auto-provision isolated, ephemeral databases before running your tests.
 
-Install Vantage globally to use the CLI anywhere on your machine:
+<details><summary><h4>Deterministic Test Execution</h4></summary>
+Vantage spins up fresh databases, injects the dynamic connection strings into your application, and tears them down immediately upon completion. This guarantees an isolated, repeatable slate for every test run without requiring manual database resets or cleanup scripts.
+</details>
+
+## Continuous Integration & Portability
+
+Vantage is built for automated deployment pipelines. By invoking the CLI with the `--ci` flag, Vantage executes your test suite in headless mode, enforcing strict exit codes and natively outputting standard **JUnit XML** reports for seamless integration with GitHub Actions, GitLab CI, Jenkins, and CircleCI.
+
+<details><summary><h4>Eject to Native Code</h4></summary>
+Vantage prevents vendor lock-in by providing a built-in export mechanism. At any time, you can export your entire recorded test suite to native <code>pytest</code> or <code>jest</code> test files.
+</details>
+
+<p style="clear:both;">&nbsp;</p>
+<div>&nbsp;</div>
+
+## Get Started with Vantage
+
+### Using `vantage-cli`
+
+Vantage is distributed via the npm registry. Install it globally or as a development dependency:
 
 ```bash
 npm install -g vantage-cli
 ```
 
-Or run it directly via npx without installing:
-
-```bash
-npx vantage-cli
-```
-
----
-
-## 🛠️ Quick Start
-
 ### 1. Record Traffic
-Start your application behind the Vantage proxy (defaults to port `6789`). Vantage will forward all traffic to your app (defaults to port `3000`).
+Start your application behind the Vantage proxy. Vantage will automatically launch your server and intercept traffic before forwarding it.
 
 ```bash
-vantage record --port 6789
+vantage record -c "npm run dev" --proxy 3000
 ```
 
-Now, make requests to `http://localhost:6789` (e.g. using Postman). Vantage will record every request/response pair as a YAML file inside the `.vantage/` directory.
+Send your requests (via Postman, curl, or your frontend) to the proxy at `http://localhost:6789`. Vantage will record every request and response pair as deterministic YAML files inside the `.vantage/` directory.
 
 ### 2. Replay Tests
-Replay your recorded tests directly against your application. Vantage will diff the HTTP status codes and JSON response bodies to ensure nothing broke.
+Replay your recorded tests directly against your application. Vantage will diff the HTTP status codes and JSON response bodies to ensure there are no regressions.
 
 ```bash
-vantage test --target http://localhost:3000
+vantage test -c "npm run dev"
 ```
 
-### 3. CI Pipeline & JUnit Reports
-Run tests in headless mode for your CI/CD pipelines. This will skip the interactive UI, enforce strict `process.exit(1)` codes on failure, and generate a `junit.xml` report.
+## Configuration
 
-```bash
-vantage test --ci
-```
-
----
-
-## ⚙️ Configuration (`vantage.config.yaml`)
-
-You can control exactly how Vantage handles noise (dynamic data) and test environments by modifying the auto-generated `.vantage/vantage.config.yaml` file in your project root.
+Control exactly how Vantage handles noise and external databases by modifying `.vantage/vantage.config.yaml`:
 
 ```yaml
-version: 1
-app_port: 3000
-record_port: 6789
 noise:
-  # Ignore specific HTTP headers during diffs
-  headers:
-    - Date
-    - ETag
-    - X-Request-Id
-  # Ignore specific JSON body fields during diffs (like volatile IDs)
+  smart_masking: true
   body_fields:
-    - id
-    - createdAt
-    - accessToken
+    - user.lastLogin
+  ignore_paths:
+    - /_next/
+    - .css
+
+containers:
+  - type: postgresql
+    image: postgres:15-alpine
+    env_var: DATABASE_URL
+
 scripts:
-  # Optional setup/teardown hooks to run before and after the test suite
-  pre_test: "npm run db:reset"
-  post_test: "echo 'Tests finished!'"
+  pre_test: "npx prisma db push"
 ```
 
----
 
-## 📤 Exporting (Anti-Vendor Lock-in)
 
-If you decide you want to move away from Vantage and write your tests manually, you can instantly export your recorded YAML test suite into native code!
+## License
 
-```bash
-# Export to Python (Pytest)
-vantage export --format pytest --out ./tests
-
-# Export to JavaScript (Jest)
-vantage export --format jest --out ./tests
-```
-
----
-
-## 📝 License
-
-MIT License.
+This repository and site are available as open-source under the terms of the [MIT License](https://opensource.org/licenses/MIT).
